@@ -203,6 +203,9 @@ validate_expr(struct validator *state, expr_ty exp, expr_context_ty ctx)
     case Starred_kind:
         actual_ctx = exp->v.Starred.ctx;
         break;
+    case DoubleStarred_kind:
+        actual_ctx = exp->v.DoubleStarred.ctx;
+        break;
     case Name_kind:
         if (!validate_name(exp->v.Name.id)) {
             return 0;
@@ -339,6 +342,9 @@ validate_expr(struct validator *state, expr_ty exp, expr_context_ty ctx)
         break;
     case Starred_kind:
         ret = validate_expr(state, exp->v.Starred.value, ctx);
+        break;
+    case DoubleStarred_kind:
+        ret = validate_expr(state, exp->v.DoubleStarred.value, ctx);
         break;
     case Slice_kind:
         ret = (!exp->v.Slice.lower || validate_expr(state, exp->v.Slice.lower, Load)) &&

@@ -791,7 +791,7 @@ append_ast_subscript(_PyUnicodeWriter *writer, expr_ty e)
     if (slice->kind == Tuple_kind) {
         for (Py_ssize_t i = 0; i < asdl_seq_LEN(slice->v.Tuple.elts); i++) {
             expr_ty element = asdl_seq_GET(slice->v.Tuple.elts, i);
-            if (element->kind == Starred_kind) {
+            if (element->kind == Starred_kind || element->kind == DoubleStarred_kind) {
                 ++level;
                 break;
             }
@@ -807,6 +807,14 @@ append_ast_starred(_PyUnicodeWriter *writer, expr_ty e)
 {
     APPEND_STR("*");
     APPEND_EXPR(e->v.Starred.value, PR_EXPR);
+    return 0;
+}
+
+static int
+append_ast_double_starred(_PyUnicodeWriter *writer, expr_ty e)
+{
+    APPEND_STR("**");
+    APPEND_EXPR(e->v.DoubleStarred.value, PR_EXPR);
     return 0;
 }
 
@@ -907,6 +915,8 @@ append_ast_expr(_PyUnicodeWriter *writer, expr_ty e, int level)
         return append_ast_subscript(writer, e);
     case Starred_kind:
         return append_ast_starred(writer, e);
+    case DoubleStarred_kind:
+        return append_ast_double_starred(writer, e);
     case Slice_kind:
         return append_ast_slice(writer, e);
     case Name_kind:

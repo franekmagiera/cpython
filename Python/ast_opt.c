@@ -36,7 +36,7 @@ has_starred(asdl_expr_seq *elts)
     Py_ssize_t n = asdl_seq_LEN(elts);
     for (Py_ssize_t i = 0; i < n; i++) {
         expr_ty e = (expr_ty)asdl_seq_GET(elts, i);
-        if (e->kind == Starred_kind) {
+        if (e->kind == Starred_kind || e->kind == DoubleStarred_kind) {
             return 1;
         }
     }
@@ -791,6 +791,9 @@ astfold_expr(expr_ty node_, PyArena *ctx_, _PyASTOptimizeState *state)
         break;
     case Starred_kind:
         CALL(astfold_expr, expr_ty, node_->v.Starred.value);
+        break;
+    case DoubleStarred_kind:
+        CALL(astfold_expr, expr_ty, node_->v.DoubleStarred.value);
         break;
     case Slice_kind:
         CALL_OPT(astfold_expr, expr_ty, node_->v.Slice.lower);

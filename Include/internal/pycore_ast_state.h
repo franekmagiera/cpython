@@ -47,6 +47,7 @@ struct ast_state {
     PyObject *Dict_type;
     PyObject *Div_singleton;
     PyObject *Div_type;
+    PyObject *DoubleStarred_type;
     PyObject *Eq_singleton;
     PyObject *Eq_type;
     PyObject *ExceptHandler_type;

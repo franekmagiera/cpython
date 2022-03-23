@@ -343,7 +343,8 @@ enum _expr_kind {BoolOp_kind=1, NamedExpr_kind=2, BinOp_kind=3, UnaryOp_kind=4,
                   YieldFrom_kind=15, Compare_kind=16, Call_kind=17,
                   FormattedValue_kind=18, JoinedStr_kind=19, Constant_kind=20,
                   Attribute_kind=21, Subscript_kind=22, Starred_kind=23,
-                  Name_kind=24, List_kind=25, Tuple_kind=26, Slice_kind=27};
+                  DoubleStarred_kind=24, Name_kind=25, List_kind=26,
+                  Tuple_kind=27, Slice_kind=28};
 struct _expr {
     enum _expr_kind kind;
     union {
@@ -464,6 +465,11 @@ struct _expr {
             expr_ty value;
             expr_context_ty ctx;
         } Starred;
+
+        struct {
+            expr_ty value;
+            expr_context_ty ctx;
+        } DoubleStarred;
 
         struct {
             identifier id;
@@ -783,6 +789,9 @@ expr_ty _PyAST_Subscript(expr_ty value, expr_ty slice, expr_context_ty ctx, int
 expr_ty _PyAST_Starred(expr_ty value, expr_context_ty ctx, int lineno, int
                        col_offset, int end_lineno, int end_col_offset, PyArena
                        *arena);
+expr_ty _PyAST_DoubleStarred(expr_ty value, expr_context_ty ctx, int lineno,
+                             int col_offset, int end_lineno, int
+                             end_col_offset, PyArena *arena);
 expr_ty _PyAST_Name(identifier id, expr_context_ty ctx, int lineno, int
                     col_offset, int end_lineno, int end_col_offset, PyArena
                     *arena);

@@ -4262,7 +4262,7 @@ starunpack_helper(struct compiler *c, asdl_expr_seq *elts, int pushed,
     int seen_star = 0;
     for (Py_ssize_t i = 0; i < n; i++) {
         expr_ty elt = asdl_seq_GET(elts, i);
-        if (elt->kind == Starred_kind) {
+        if (elt->kind == Starred_kind || elt->kind == DoubleStarred_kind) {
             seen_star = 1;
         }
     }
@@ -4285,12 +4285,17 @@ starunpack_helper(struct compiler *c, asdl_expr_seq *elts, int pushed,
     }
     for (Py_ssize_t i = 0; i < n; i++) {
         expr_ty elt = asdl_seq_GET(elts, i);
-        if (elt->kind == Starred_kind) {
+        if (elt->kind == Starred_kind || elt->kind == DoubleStarred_kind) {
             if (sequence_built == 0) {
                 ADDOP_I(c, build, i+pushed);
                 sequence_built = 1;
             }
-            VISIT(c, expr, elt->v.Starred.value);
+            if (elt->kind == Starred_kind) {
+                VISIT(c, expr, elt->v.Starred.value);
+            }
+            if (elt->kind == DoubleStarred_kind) {
+                VISIT(c, expr, elt->v.Starred.value);
+            }
             ADDOP_I(c, extend, 1);
         }
         else {
@@ -4314,7 +4319,7 @@ unpack_helper(struct compiler *c, asdl_expr_seq *elts)
     int seen_star = 0;
     for (Py_ssize_t i = 0; i < n; i++) {
         expr_ty elt = asdl_seq_GET(elts, i);
-        if (elt->kind == Starred_kind && !seen_star) {
+        if ((elt->kind == Starred_kind || elt->kind == DoubleStarred_kind) && !seen_star) {
             if ((i >= (1 << 8)) ||
                 (n-i-1 >= (INT_MAX >> 8)))
                 return compiler_error(c,
@@ -4323,7 +4328,7 @@ unpack_helper(struct compiler *c, asdl_expr_seq *elts)
             ADDOP_I(c, UNPACK_EX, (i + ((n-i-1) << 8)));
             seen_star = 1;
         }
-        else if (elt->kind == Starred_kind) {
+        else if (elt->kind == Starred_kind || elt->kind == DoubleStarred_kind) {
             return compiler_error(c,
                 "multiple starred expressions in assignment");
         }
@@ -4341,7 +4346,13 @@ assignment_helper(struct compiler *c, asdl_expr_seq *elts)
     RETURN_IF_FALSE(unpack_helper(c, elts));
     for (Py_ssize_t i = 0; i < n; i++) {
         expr_ty elt = asdl_seq_GET(elts, i);
-        VISIT(c, expr, elt->kind != Starred_kind ? elt : elt->v.Starred.value);
+        if (elt->kind == Starred_kind) {
+            VISIT(c, expr, elt->v.Starred.value);
+        } else if (elt->kind == DoubleStarred_kind) {
+            VISIT(c, expr, elt->v.DoubleStarred.value);
+        } else {
+            VISIT(c, expr, elt);
+        }
     }
     return 1;
 }
@@ -4695,7 +4706,7 @@ maybe_optimize_method_call(struct compiler *c, expr_ty e)
     /* Check that there are no *varargs types of arguments. */
     for (i = 0; i < argsl; i++) {
         expr_ty elt = asdl_seq_GET(args, i);
-        if (elt->kind == Starred_kind) {
+        if (elt->kind == Starred_kind || elt->kind == DoubleStarred_kind) {
             return -1;
         }
     }
@@ -4935,7 +4946,7 @@ compiler_call_helper(struct compiler *c,
     }
     for (i = 0; i < nelts; i++) {
         expr_ty elt = asdl_seq_GET(args, i);
-        if (elt->kind == Starred_kind) {
+        if (elt->kind == Starred_kind || elt->kind == DoubleStarred_kind) {
             goto ex_call;
         }
     }
@@ -4949,7 +4960,7 @@ compiler_call_helper(struct compiler *c,
     /* No * or ** args, so can use faster calling sequence */
     for (i = 0; i < nelts; i++) {
         expr_ty elt = asdl_seq_GET(args, i);
-        assert(elt->kind != Starred_kind);
+        assert(elt->kind != Starred_kind && elt->kind != DoubleStarred_kind);
         VISIT(c, expr, elt);
     }
     if (nkwelts) {
@@ -4967,6 +4978,8 @@ ex_call:
     /* Do positional arguments. */
     if (n ==0 && nelts == 1 && ((expr_ty)asdl_seq_GET(args, 0))->kind == Starred_kind) {
         VISIT(c, expr, ((expr_ty)asdl_seq_GET(args, 0))->v.Starred.value);
+    } else if (n ==0 && nelts == 1 && ((expr_ty)asdl_seq_GET(args, 0))->kind == DoubleStarred_kind) {
+        VISIT(c, expr, ((expr_ty)asdl_seq_GET(args, 0))->v.DoubleStarred.value)
     }
     else if (starunpack_helper(c, args, n, BUILD_LIST,
                                  LIST_APPEND, LIST_EXTEND, 1) == 0) {
@@ -5097,7 +5110,7 @@ compiler_sync_comprehension_generator(struct compiler *c,
         }
         if (asdl_seq_LEN(elts) == 1) {
             expr_ty elt = asdl_seq_GET(elts, 0);
-            if (elt->kind != Starred_kind) {
+            if (elt->kind != Starred_kind && elt->kind != DoubleStarred_kind) {
                 VISIT(c, expr, elt);
                 start = NULL;
             }
@@ -5764,6 +5777,9 @@ compiler_visit_expr1(struct compiler *c, expr_ty e)
             return compiler_error(c,
                 "can't use starred expression here");
         }
+        break;
+    case DoubleStarred_kind:
+        VISIT(c, expr, e->v.DoubleStarred.value);
         break;
     case Slice_kind:
         return compiler_slice(c, e);

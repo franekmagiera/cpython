@@ -1483,7 +1483,8 @@ class _Unparser(NodeVisitor):
             return (
                 isinstance(slice_value, Tuple)
                 and slice_value.elts
-                and not any(isinstance(elt, Starred) for elt in slice_value.elts)
+                and not any(isinstance(elt, Starred)
+                and not any(isinstance(elt, DoubleStarred)) for elt in slice_value.elts)
             )
 
         self.set_precedence(_Precedence.ATOM, node.value)
@@ -1496,6 +1497,11 @@ class _Unparser(NodeVisitor):
 
     def visit_Starred(self, node):
         self.write("*")
+        self.set_precedence(_Precedence.EXPR, node.value)
+        self.traverse(node.value)
+    
+    def visit_DoubleStarred(self, node):
+        self.write("**")
         self.set_precedence(_Precedence.EXPR, node.value)
         self.traverse(node.value)
 

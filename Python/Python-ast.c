@@ -61,6 +61,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
     Py_CLEAR(state->Dict_type);
     Py_CLEAR(state->Div_singleton);
     Py_CLEAR(state->Div_type);
+    Py_CLEAR(state->DoubleStarred_type);
     Py_CLEAR(state->Eq_singleton);
     Py_CLEAR(state->Eq_type);
     Py_CLEAR(state->ExceptHandler_type);
@@ -613,6 +614,10 @@ static const char * const Subscript_fields[]={
     "ctx",
 };
 static const char * const Starred_fields[]={
+    "value",
+    "ctx",
+};
+static const char * const DoubleStarred_fields[]={
     "value",
     "ctx",
 };
@@ -1330,6 +1335,7 @@ init_types(struct ast_state *state)
         "     | Attribute(expr value, identifier attr, expr_context ctx)\n"
         "     | Subscript(expr value, expr slice, expr_context ctx)\n"
         "     | Starred(expr value, expr_context ctx)\n"
+        "     | DoubleStarred(expr value, expr_context ctx)\n"
         "     | Name(identifier id, expr_context ctx)\n"
         "     | List(expr* elts, expr_context ctx)\n"
         "     | Tuple(expr* elts, expr_context ctx)\n"
@@ -1441,6 +1447,11 @@ init_types(struct ast_state *state)
                                     Starred_fields, 2,
         "Starred(expr value, expr_context ctx)");
     if (!state->Starred_type) return 0;
+    state->DoubleStarred_type = make_type(state, "DoubleStarred",
+                                          state->expr_type,
+                                          DoubleStarred_fields, 2,
+        "DoubleStarred(expr value, expr_context ctx)");
+    if (!state->DoubleStarred_type) return 0;
     state->Name_type = make_type(state, "Name", state->expr_type, Name_fields,
                                  2,
         "Name(identifier id, expr_context ctx)");
@@ -3161,6 +3172,35 @@ _PyAST_Starred(expr_ty value, expr_context_ty ctx, int lineno, int col_offset,
 }
 
 expr_ty
+_PyAST_DoubleStarred(expr_ty value, expr_context_ty ctx, int lineno, int
+                     col_offset, int end_lineno, int end_col_offset, PyArena
+                     *arena)
+{
+    expr_ty p;
+    if (!value) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'value' is required for DoubleStarred");
+        return NULL;
+    }
+    if (!ctx) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'ctx' is required for DoubleStarred");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = DoubleStarred_kind;
+    p->v.DoubleStarred.value = value;
+    p->v.DoubleStarred.ctx = ctx;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
 _PyAST_Name(identifier id, expr_context_ty ctx, int lineno, int col_offset, int
             end_lineno, int end_col_offset, PyArena *arena)
 {
@@ -4609,6 +4649,21 @@ ast2obj_expr(struct ast_state *state, void* _o)
             goto failed;
         Py_DECREF(value);
         value = ast2obj_expr_context(state, o->v.Starred.ctx);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->ctx, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case DoubleStarred_kind:
+        tp = (PyTypeObject *)state->DoubleStarred_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.DoubleStarred.value);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->value, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_expr_context(state, o->v.DoubleStarred.ctx);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->ctx, value) == -1)
             goto failed;
@@ -9561,6 +9616,54 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, PyArena*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->DoubleStarred_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return 1;
+    }
+    if (isinstance) {
+        expr_ty value;
+        expr_context_ty ctx;
+
+        if (_PyObject_LookupAttr(obj, state->value, &tmp) < 0) {
+            return 1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"value\" missing from DoubleStarred");
+            return 1;
+        }
+        else {
+            int res;
+            if (Py_EnterRecursiveCall(" while traversing 'DoubleStarred' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &value, arena);
+            Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (_PyObject_LookupAttr(obj, state->ctx, &tmp) < 0) {
+            return 1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"ctx\" missing from DoubleStarred");
+            return 1;
+        }
+        else {
+            int res;
+            if (Py_EnterRecursiveCall(" while traversing 'DoubleStarred' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr_context(state, tmp, &ctx, arena);
+            Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_DoubleStarred(value, ctx, lineno, col_offset, end_lineno,
+                                    end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->Name_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -12012,6 +12115,10 @@ astmodule_exec(PyObject *m)
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Starred", state->Starred_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "DoubleStarred", state->DoubleStarred_type) <
+        0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Name", state->Name_type) < 0) {
