@@ -2680,6 +2680,11 @@ def _namedtuple_mro_entries(bases):
 
 NamedTuple.__mro_entries__ = _namedtuple_mro_entries
 
+class UnpackedTypedDict:
+    def __init__(self, name):
+        self._name = name
+    def __repr__(self):
+        return '**' + self._name 
 
 class _TypedDictMeta(type):
     def __new__(cls, name, bases, ns, total=True):
@@ -2725,6 +2730,10 @@ class _TypedDictMeta(type):
             tp_dict.__total__ = total
         return tp_dict
 
+    def __init__(self, name, bases, ns, total=True):
+        self._name = name
+        self.unpacked = UnpackedTypedDict(name)
+    
     __call__ = dict  # static method
 
     def __subclasscheck__(cls, other):

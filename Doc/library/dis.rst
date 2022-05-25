@@ -1299,6 +1299,12 @@ iterations of the loop.
       ignore it. Before, only opcodes ``>= HAVE_ARGUMENT`` had an argument.
 
 
+.. opcode:: GET_UNPACKED
+
+
+   Does ``getattr`` on a double starred ast node's value.
+
+
 .. _opcode_collections:
 
 Opcode collections

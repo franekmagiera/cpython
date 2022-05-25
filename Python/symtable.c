@@ -1700,6 +1700,9 @@ symtable_visit_expr(struct symtable *st, expr_ty e)
     case Starred_kind:
         VISIT(st, expr, e->v.Starred.value);
         break;
+    case DoubleStarred_kind:
+        VISIT(st, expr, e->v.DoubleStarred.value);
+        break;
     case Slice_kind:
         if (e->v.Slice.lower)
             VISIT(st, expr, e->v.Slice.lower)
@@ -1863,6 +1866,7 @@ symtable_visit_annotations(struct symtable *st, stmt_ty o, arguments_ty a, expr_
         return 0;
     if (a->vararg && a->vararg->annotation)
         VISIT(st, expr, a->vararg->annotation);
+    // Here:
     if (a->kwarg && a->kwarg->annotation)
         VISIT(st, expr, a->kwarg->annotation);
     if (a->kwonlyargs && !symtable_visit_argannotations(st, a->kwonlyargs))

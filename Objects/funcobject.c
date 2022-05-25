@@ -279,6 +279,8 @@ func_get_annotation_dict(PyFunctionObject *op)
     if (op->func_annotations == NULL) {
         return NULL;
     }
+    // abcd
+    // if op->func_annotations is a tuple convert to dict
     if (PyTuple_CheckExact(op->func_annotations)) {
         PyObject *ann_tuple = op->func_annotations;
         PyObject *ann_dict = PyDict_New();

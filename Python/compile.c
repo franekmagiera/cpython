@@ -970,6 +970,8 @@ stack_effect(int opcode, int oparg, int jump)
             return -oparg;
         case LOAD_ATTR:
             return 0;
+        case GET_UNPACKED:
+            return 0;
         case COMPARE_OP:
         case IS_OP:
         case CONTAINS_OP:
@@ -2337,7 +2339,10 @@ compiler_visit_argannotation(struct compiler *c, identifier id,
     if (c->c_future->ff_features & CO_FUTURE_ANNOTATIONS) {
         VISIT(c, annexpr, annotation)
     }
+    // Here annotation would be DoubleStarred.
     else {
+        // so here annotations could be Name for example, what then?
+        // compiler_visit_expr(c, annotation)
         VISIT(c, expr, annotation);
     }
     *annotations_len += 2;
@@ -2392,7 +2397,10 @@ compiler_visit_annotations(struct compiler *c, arguments_ty args,
         return 0;
     }
 
+    // first __annotations__ are stored as a tuple, but from the last commit msg it seems like it is already a string
+    // looks like PyObjects that are being popped are already strs.... 
     if (annotations_len) {
+        // 
         ADDOP_I(c, BUILD_TUPLE, annotations_len);
         return 1;
     }
@@ -2536,6 +2544,7 @@ compiler_function(struct compiler *c, stmt_ty s, int is_async)
         return 0;
     }
 
+    // abcd
     annotations = compiler_visit_annotations(c, args, returns);
     if (annotations == 0) {
         return 0;
@@ -4182,6 +4191,7 @@ compiler_nameop(struct compiler *c, identifier name, expr_context_ty ctx)
         break;
     }
 
+    // abcd 
     assert(op);
     arg = compiler_add_o(dict, mangled);
     Py_DECREF(mangled);
@@ -5652,6 +5662,23 @@ compiler_with(struct compiler *c, stmt_ty s, int pos)
 }
 
 static int
+compiler_double_starred(struct compiler *c, expr_ty e)
+{
+    // 28 PUSH_NULL
+    // 30 LOAD_GLOBAL              1 (getattr)
+    // 42 LOAD_GLOBAL              0 (Movie)
+    // 54 LOAD_CONST               4 ('_unpacked')
+    // 56 LOAD_GLOBAL              0 (Movie)
+    // 68 PRECALL                  3
+    // 72 CALL                     3
+    // 82 POP_TOP
+
+    VISIT(c, expr, e->v.DoubleStarred.value);
+    ADDOP(c, GET_UNPACKED);
+    return 1;
+}
+
+static int
 compiler_visit_expr1(struct compiler *c, expr_ty e)
 {
     switch (e->kind) {
@@ -5779,11 +5806,14 @@ compiler_visit_expr1(struct compiler *c, expr_ty e)
         }
         break;
     case DoubleStarred_kind:
-        VISIT(c, expr, e->v.DoubleStarred.value);
+        // Here we should do gettattr(e->v.DoubleStarred.value, "_unpacked", "e->v.DoubleStarred.value")
+        return compiler_double_starred(c, e);
+        // VISIT(c, expr, e->v.DoubleStarred.value);
         break;
     case Slice_kind:
         return compiler_slice(c, e);
     case Name_kind:
+        // here it goes normally
         return compiler_nameop(c, e->v.Name.id, e->v.Name.ctx);
     /* child nodes of List and Tuple will have expr_context set */
     case List_kind:
@@ -5935,6 +5965,7 @@ check_ann_subscr(struct compiler *c, expr_ty e)
     }
 }
 
+//
 static int
 compiler_annassign(struct compiler *c, stmt_ty s)
 {

@@ -196,6 +196,7 @@ def_op('PRECALL', 166, 1)
 def_op('CALL', 171, 4)
 def_op('KW_NAMES', 172)
 hasconst.append(172)
+def_op('GET_UNPACKED', 173)
 
 
 del def_op, name_op, jrel_op, jabs_op

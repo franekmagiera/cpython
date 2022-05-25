@@ -1767,6 +1767,7 @@ handle_eval_breaker:
             DISPATCH();
         }
 
+        // it should be ending up here
         TARGET(LOAD_FAST) {
             PyObject *value = GETLOCAL(oparg);
             if (value == NULL) {
@@ -3186,12 +3187,21 @@ handle_eval_breaker:
             DISPATCH();
         }
 
+        // here the tuple is built, again item is fetched with POP
+        // >>> tup = ("1", 2, Movie)
+        // >>> tup
+        // ('1', 2, <class '__main__.Movie'>)
         TARGET(BUILD_TUPLE) {
             PyObject *tup = PyTuple_New(oparg);
             if (tup == NULL)
                 goto error;
             while (--oparg >= 0) {
+                // here
                 PyObject *item = POP();
+                // what should be happening here?
+                // or rather that opcode should "convert" TypedDict to UnpackedTypedDict that has a different repr
+                // could we do something to reference ._unpacked of a TypedDict? like LOAD_ATTR?
+                // but that would break if someone did **kwargs: int or smth...
                 PyTuple_SET_ITEM(tup, oparg, item);
             }
             PUSH(tup);
@@ -3425,6 +3435,18 @@ handle_eval_breaker:
             Py_DECREF(owner);
             SET_TOP(res);
             JUMPBY(INLINE_CACHE_ENTRIES_LOAD_ATTR);
+            DISPATCH();
+        }
+
+        TARGET(GET_UNPACKED) {
+            PyObject *owner = TOP();
+            PyObject *unpacked = PyUnicode_FromString("unpacked");
+            PyObject *res = PyObject_GetAttr(owner, unpacked);
+            if (res == NULL) {
+                goto error;
+            }
+            Py_DECREF(owner);
+            SET_TOP(res);
             DISPATCH();
         }
 
@@ -5248,6 +5270,8 @@ handle_eval_breaker:
             }
             if (oparg & 0x04) {
                 assert(PyTuple_CheckExact(TOP()));
+                // func_annotations are set here
+                // stack pointer --
                 func->func_annotations = POP();
             }
             if (oparg & 0x02) {

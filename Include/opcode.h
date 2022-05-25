@@ -114,6 +114,7 @@ extern "C" {
 #define PRECALL                         166
 #define CALL                            171
 #define KW_NAMES                        172
+#define GET_UNPACKED                    173
 #define BINARY_OP_ADAPTIVE                3
 #define BINARY_OP_ADD_INT                 4
 #define BINARY_OP_ADD_FLOAT               5
@@ -181,8 +182,8 @@ extern "C" {
 #define LOAD_FAST__LOAD_FAST            168
 #define STORE_FAST__LOAD_FAST           169
 #define LOAD_FAST__LOAD_CONST           170
-#define LOAD_CONST__LOAD_FAST           173
-#define STORE_FAST__STORE_FAST          174
+#define LOAD_CONST__LOAD_FAST           174
+#define STORE_FAST__STORE_FAST          175
 #define DO_TRACING                      255
 
 extern const uint8_t _PyOpcode_InlineCacheEntries[256];
