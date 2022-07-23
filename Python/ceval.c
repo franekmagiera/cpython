@@ -3441,9 +3441,10 @@ handle_eval_breaker:
         TARGET(GET_UNPACKED) {
             PyObject *owner = TOP();
             PyObject *unpacked = PyUnicode_FromString("unpacked");
-            PyObject *res = PyObject_GetAttr(owner, unpacked);
+            PyObject *res = PyObject_GetUnpacked(owner, unpacked);
             if (res == NULL) {
-                goto error;
+                // goto error;
+                // noop - we dont care, just return what was there - wrong annotations should not break runtime behavior
             }
             Py_DECREF(owner);
             SET_TOP(res);

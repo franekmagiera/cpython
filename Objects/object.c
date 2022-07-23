@@ -935,6 +935,40 @@ PyObject_GetAttr(PyObject *v, PyObject *name)
     return result;
 }
 
+PyObject *
+PyObject_GetUnpacked(PyObject *v, PyObject *name)
+{
+    PyTypeObject *tp = Py_TYPE(v);
+    if (!PyUnicode_Check(name)) {
+        PyErr_Format(PyExc_TypeError,
+                     "attribute name must be string, not '%.200s'",
+                     Py_TYPE(name)->tp_name);
+        return NULL;
+    }
+
+    PyObject* result = NULL;
+    if (tp->tp_getattro != NULL) {
+        result = (*tp->tp_getattro)(v, name);
+    }
+    else if (tp->tp_getattr != NULL) {
+        const char *name_str = PyUnicode_AsUTF8(name);
+        if (name_str == NULL) {
+            // return NULL;
+        }
+        result = (*tp->tp_getattr)(v, (char *)name_str);
+    }
+    else {
+        // PyErr_Format(PyExc_AttributeError,
+        //             "'%.50s' object has no attribute '%U'",
+        //             tp->tp_name, name);
+    }
+
+    if (result == NULL) {
+        // set_attribute_error_context(v, name);
+    }
+    return result;
+}
+
 int
 _PyObject_LookupAttr(PyObject *v, PyObject *name, PyObject **result)
 {

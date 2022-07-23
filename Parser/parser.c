@@ -5077,7 +5077,7 @@ kwds_rule(Parser *p)
     return _res;
 }
 
-// param_no_default_double_star_annotation: param_double_star_annotation &')'
+// param_no_default_double_star_annotation: param_double_star_annotation ','? &')'
 static arg_ty
 param_no_default_double_star_annotation_rule(Parser *p)
 {
@@ -5091,20 +5091,24 @@ param_no_default_double_star_annotation_rule(Parser *p)
     }
     arg_ty _res = NULL;
     int _mark = p->mark;
-    { // param_double_star_annotation &')'
+    { // param_double_star_annotation ','? &')'
         if (p->error_indicator) {
             p->level--;
             return NULL;
         }
-        D(fprintf(stderr, "%*c> param_no_default_double_star_annotation[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "param_double_star_annotation &')'"));
+        D(fprintf(stderr, "%*c> param_no_default_double_star_annotation[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "param_double_star_annotation ','? &')'"));
+        void *_opt_var;
+        UNUSED(_opt_var); // Silence compiler warnings
         arg_ty a;
         if (
             (a = param_double_star_annotation_rule(p))  // param_double_star_annotation
             &&
+            (_opt_var = _PyPegen_expect_token(p, 12), !p->error_indicator)  // ','?
+            &&
             _PyPegen_lookahead_with_int(1, _PyPegen_expect_token, p, 8)  // token=')'
         )
         {
-            D(fprintf(stderr, "%*c+ param_no_default_double_star_annotation[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "param_double_star_annotation &')'"));
+            D(fprintf(stderr, "%*c+ param_no_default_double_star_annotation[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "param_double_star_annotation ','? &')'"));
             _res = a;
             if (_res == NULL && PyErr_Occurred()) {
                 p->error_indicator = 1;
@@ -5115,7 +5119,7 @@ param_no_default_double_star_annotation_rule(Parser *p)
         }
         p->mark = _mark;
         D(fprintf(stderr, "%*c%s param_no_default_double_star_annotation[%d-%d]: %s failed!\n", p->level, ' ',
-                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "param_double_star_annotation &')'"));
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "param_double_star_annotation ','? &')'"));
     }
     _res = NULL;
   done:
@@ -5202,15 +5206,6 @@ double_star_annotation_rule(Parser *p)
     }
     expr_ty _res = NULL;
     int _mark = p->mark;
-    if (p->mark == p->fill && _PyPegen_fill_token(p) < 0) {
-        p->error_indicator = 1;
-        p->level--;
-        return NULL;
-    }
-    int _start_lineno = p->tokens[_mark]->lineno;
-    UNUSED(_start_lineno); // Only used by EXTRA macro
-    int _start_col_offset = p->tokens[_mark]->col_offset;
-    UNUSED(_start_col_offset); // Only used by EXTRA macro
     { // ':' double_star_expression
         if (p->error_indicator) {
             p->level--;
@@ -5226,6 +5221,62 @@ double_star_annotation_rule(Parser *p)
         )
         {
             D(fprintf(stderr, "%*c+ double_star_annotation[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "':' double_star_expression"));
+            _res = a;
+            if (_res == NULL && PyErr_Occurred()) {
+                p->error_indicator = 1;
+                p->level--;
+                return NULL;
+            }
+            goto done;
+        }
+        p->mark = _mark;
+        D(fprintf(stderr, "%*c%s double_star_annotation[%d-%d]: %s failed!\n", p->level, ' ',
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "':' double_star_expression"));
+    }
+    _res = NULL;
+  done:
+    p->level--;
+    return _res;
+}
+
+// double_star_expression: '**' bitwise_or
+static expr_ty
+double_star_expression_rule(Parser *p)
+{
+    if (p->level++ == MAXSTACK) {
+        p->error_indicator = 1;
+        PyErr_NoMemory();
+    }
+    if (p->error_indicator) {
+        p->level--;
+        return NULL;
+    }
+    expr_ty _res = NULL;
+    int _mark = p->mark;
+    if (p->mark == p->fill && _PyPegen_fill_token(p) < 0) {
+        p->error_indicator = 1;
+        p->level--;
+        return NULL;
+    }
+    int _start_lineno = p->tokens[_mark]->lineno;
+    UNUSED(_start_lineno); // Only used by EXTRA macro
+    int _start_col_offset = p->tokens[_mark]->col_offset;
+    UNUSED(_start_col_offset); // Only used by EXTRA macro
+    { // '**' bitwise_or
+        if (p->error_indicator) {
+            p->level--;
+            return NULL;
+        }
+        D(fprintf(stderr, "%*c> double_star_expression[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "'**' bitwise_or"));
+        Token * _literal;
+        expr_ty a;
+        if (
+            (_literal = _PyPegen_expect_token(p, 35))  // token='**'
+            &&
+            (a = bitwise_or_rule(p))  // bitwise_or
+        )
+        {
+            D(fprintf(stderr, "%*c+ double_star_expression[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "'**' bitwise_or"));
             Token *_token = _PyPegen_get_last_nonnwhitespace_token(p);
             if (_token == NULL) {
                 p->level--;
@@ -5244,55 +5295,8 @@ double_star_annotation_rule(Parser *p)
             goto done;
         }
         p->mark = _mark;
-        D(fprintf(stderr, "%*c%s double_star_annotation[%d-%d]: %s failed!\n", p->level, ' ',
-                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "':' double_star_expression"));
-    }
-    _res = NULL;
-  done:
-    p->level--;
-    return _res;
-}
-
-// double_star_expression: '**' expression
-static expr_ty
-double_star_expression_rule(Parser *p)
-{
-    if (p->level++ == MAXSTACK) {
-        p->error_indicator = 1;
-        PyErr_NoMemory();
-    }
-    if (p->error_indicator) {
-        p->level--;
-        return NULL;
-    }
-    expr_ty _res = NULL;
-    int _mark = p->mark;
-    { // '**' expression
-        if (p->error_indicator) {
-            p->level--;
-            return NULL;
-        }
-        D(fprintf(stderr, "%*c> double_star_expression[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "'**' expression"));
-        Token * _literal;
-        expr_ty a;
-        if (
-            (_literal = _PyPegen_expect_token(p, 35))  // token='**'
-            &&
-            (a = expression_rule(p))  // expression
-        )
-        {
-            D(fprintf(stderr, "%*c+ double_star_expression[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "'**' expression"));
-            _res = a;
-            if (_res == NULL && PyErr_Occurred()) {
-                p->error_indicator = 1;
-                p->level--;
-                return NULL;
-            }
-            goto done;
-        }
-        p->mark = _mark;
         D(fprintf(stderr, "%*c%s double_star_expression[%d-%d]: %s failed!\n", p->level, ' ',
-                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "'**' expression"));
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "'**' bitwise_or"));
     }
     _res = NULL;
   done:

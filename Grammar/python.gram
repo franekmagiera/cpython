@@ -321,7 +321,7 @@ kwds[arg_ty]:
     | '**' a=param_no_default_double_star_annotation { a }
     | '**' a=param_no_default { a }
 
-param_no_default_double_star_annotation[arg_ty]: a=param_double_star_annotation &')' { a } 
+param_no_default_double_star_annotation[arg_ty]: a=param_double_star_annotation ','? &')' { a } 
 
 # HERE: _PyAST_arg to something else, second param is expr_ty; 
 param_double_star_annotation[arg_ty]: a=NAME b=double_star_annotation { _PyAST_arg(a->v.Name.id, b, NULL, EXTRA) }

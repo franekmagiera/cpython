@@ -277,6 +277,7 @@ PyAPI_FUNC(PyObject *) PyObject_GetAttrString(PyObject *, const char *);
 PyAPI_FUNC(int) PyObject_SetAttrString(PyObject *, const char *, PyObject *);
 PyAPI_FUNC(int) PyObject_HasAttrString(PyObject *, const char *);
 PyAPI_FUNC(PyObject *) PyObject_GetAttr(PyObject *, PyObject *);
+PyAPI_FUNC(PyObject *) PyObject_GetUnpacked(PyObject *, PyObject *);
 PyAPI_FUNC(int) PyObject_SetAttr(PyObject *, PyObject *, PyObject *);
 PyAPI_FUNC(int) PyObject_HasAttr(PyObject *, PyObject *);
 PyAPI_FUNC(PyObject *) PyObject_SelfIter(PyObject *);
